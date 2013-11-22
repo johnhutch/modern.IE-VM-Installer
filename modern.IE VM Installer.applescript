@@ -64,34 +64,7 @@ on activateVirtualBox()
 	tell application "VirtualBox" to activate
 end activateVirtualBox
 
--- Based on: http://growl.info/documentation/applescript-support.php#simpleNotificationSampleCode
-on GrowlAvailable()
-	if ApplicationBundleIsRunning("com.Growl.GrowlHelperApp") then
-		try
-			tell application id "com.Growl.GrowlHelperApp"
-				set the allNotificationsList to {"Install Progress Notification"}
-				set the enabledNotificationsList to {"Install Progress Notification"}
-				
-				register as application scriptName all notifications allNotificationsList default notifications enabledNotificationsList
-			end tell
-			
-			return true
-		end try
-	end if
-	
-	return false
-end GrowlAvailable
 
-on GrowlNotify(theTitle, theDescription)
-	if GrowlAvailable() then
-		try
-			tell application id "com.Growl.GrowlHelperApp"
-				close all notifications
-				notify with name "Install Progress Notification" title theTitle description theDescription application name scriptName with sticky
-			end tell
-		end try
-	end if
-end GrowlNotify
 
 -- Based on: http://stackoverflow.com/a/8298899/251760
 on filename(thePath)
@@ -169,8 +142,6 @@ if allVMs contains selectedVM then
 				set selectedVM_URL_currentSizeMB to round (selectedVM_URL_currentSize / 1000 / 1000)
 				set selectedVM_URL_currentSizePercentage to round (selectedVM_URL_currentSize / selectedVM_URL_size * 100)
 				
-				-- Display progress
-				GrowlNotify("Downloading file " & i & " of " & (count of selectedVM_URLs) & "…", "Downloaded " & selectedVM_URL_currentSizeMB & "MB of " & selectedVM_URL_sizeMB & "MB (" & selectedVM_URL_currentSizePercentage & "%)")
 			end if
 			
 			delay 1
@@ -195,11 +166,9 @@ if allVMs contains selectedVM then
 			set selectedVM_OVA_path to tempPath & selectedVM_URL_filename
 		else if ZIP_VMs contains selectedVM then
 			-- Extract the ZIP
-			GrowlNotify("Extracting ZIP file…", "")
 			set selectedVM_OVA_path to trim(do shell script "unzip -o '" & tempPath & selectedVM_URL_filename & "' -d '" & tempPath & "' | grep 'inflating:' | sed 's/inflating://g'")
 		else if SFX_VMs contains selectedVM then
 			-- 'Extract' (execute) the SFX
-			GrowlNotify("Extracting SFX file…", "")
 			do shell script "chmod +x '" & tempPath & selectedVM_URL_filename & "'"
 			set selectedVM_OVA_path to tempPath & trim(do shell script "cd '" & tempPath & "'; './" & selectedVM_URL_filename & "' | grep 'OK' | egrep 'Extracting|\\.\\.\\.' | sed 's/^\\.\\.\\.//g' | sed 's/^Extracting//g' | sed 's/\\.ova.*$/.ova/g'")
 		end if
@@ -214,7 +183,6 @@ if allVMs contains selectedVM then
 			
 			try
 				-- Import the file in VirtualBox
-				GrowlNotify("Importing OVA file into VirtualBox…", "")
 				set selectedVM_OVA_installResult to do shell script "VBoxManage import '" & selectedVM_OVA_path & "'"
 				
 				-- Check whether the installation was successful
@@ -244,7 +212,6 @@ if allVMs contains selectedVM then
 		
 		-- Was the import successful?
 		if success = 1 then
-			GrowlNotify("Installation completed!", "")
 			activateVirtualBox()
 		else
 			-- The import was not successful; show the error message
